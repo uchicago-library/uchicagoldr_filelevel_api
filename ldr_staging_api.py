@@ -38,7 +38,9 @@ def get_stage(id):
 
 
 def write_stage(stage, id):
-    pass
+    stage.identifier = id
+    w = FileSystemStageWriter(stage, _STAGING_ENV_PATH)
+    w.write()
 
 
 class Stages(Resource):
@@ -51,8 +53,14 @@ class Stages(Resource):
             return jsonify(APIResponse("fail", errors=[str(type(e)) + ": " + str(e)]).dictify())
 
     def post(self):
-        # Create a new stage
-        pass
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument("stage_identifier", type=str, required=True)
+            args = parser.parse_args()
+            s = Stage(args['stage_identifier'])
+            write_stage(s, args['stage_identifier'])
+        except Exception as e:
+            return jsonify(APIResponse("fail", errors=[str(type(e)) + ": " + str(e)]).dictify())
 
 
 class Stage(Resource):
@@ -77,7 +85,18 @@ class Stage(Resource):
 
     def post(self, stage_id):
         # Add a segment
-        pass
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument("stage_identifier", type=str, required=True)
+            parser.add_argument("segment_identifier", type=str, required=True)
+            parser.add_argument("segment_number", type=str, required=True)
+            args = parser.parse_args()
+            stage = get_stage(args['stage_identifier'])
+            segment = Segment(args['segment_identifier'], args['segment_number'])
+            stage.add_segment(segment)
+            write_stage(stage, stage.identifier)
+        except Exception as e:
+            return jsonify(APIResponse("fail", errors=[str(type(e)) + ": " + str(e)]).dictify())
 
     def delete(self, stage_id):
         # Delete this stage
@@ -366,6 +385,7 @@ class Techmd(Resource):
 
 class Content(Resource):
     def get(self, stage_id, segment_id, ms_id):
+        # Return the content file
         try:
             parser = reqparse.RequestParser()
             parser.add_argument('body', type=bool)
@@ -394,7 +414,6 @@ class Content(Resource):
             return jsonify(APIResponse("fail", errors=[str(type(e)) + ": " + str(e)]).dictify())
 
 
-        # Return the content file
         pass
 
     def delete(self, stage_id, segment_id, ms_id):
